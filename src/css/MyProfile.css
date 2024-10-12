@@ -1,0 +1,105 @@
+.profile-container {
+    margin: 2rem auto;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    width: 100%;
+}
+
+header {
+    background-color: #078080;
+    color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+.username {
+    color: white;
+}
+
+.welcome-message {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: black;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+.profile-image-container {
+    width:100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.profile-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-items: flex-start;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-left: 30px;
+}
+
+.profile-card-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+
+.profile-card {
+    width: 90vmax;
+    justify-content: center;
+    align-items: center;
+}
+
+.player-stats-card {
+    width: 90vmax;
+    flex: 1;
+    min-width: 250px;
+}
+
+.edit-profile-button {
+    background: linear-gradient(90deg, #f45d48 0%, rgba(255, 100, 100) 100%);
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    transition: box-shadow 0.3s;
+    margin-top: 1rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+.edit-profile-button:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.player-stats-container {
+    flex: 1;
+    min-width: 250px;
+}
+
+.logout-button,
+.leaderboard-button,
+.home-button {
+    background: linear-gradient(90deg, #f45d48 0%, rgba(255, 100, 100) 100%);
+    color: rgb(0, 0, 0);
+    font-weight: bold;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    margin: 0.5rem;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+}
+
+.logout-button:hover,
+.leaderboard-button:hover,
+.home-button:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
