@@ -9,7 +9,7 @@ Explore the hosted version and feel free to contribute, clone, or improve it!
 ## 🌐 Hosted Version
 
 You can access the live version of the application here:  
-🔗 **[Keyboard Typing Test Live App](https://your-live-app-url.com)**
+🔗 **[Keyboard Typing Test Live App](https://ibraheems-articlex.netlify.app/)**
 
 ---
 
@@ -38,10 +38,26 @@ git clone https://github.com/iadam2000/Keyboard-Warrior.git
 cd Keyboard-Warrior
 ```
 
-### 1. Install Dependencies
+### 2. Install Dependencies
 
-Use 
+Paste the following in the terminal - make sure you're using the root directory
 ```bash
 npm install
 ```
 
+### 3. Run the Code!
+In the root directory, run:
+```bash
+npm run build
+npm run dev
+```
+### 4. 📜 Features to Explore
+- Typing Tests: Choose from various tests to challenge your skills.
+- Statistics: View your typing speed and accuracy after each test.
+- Customization: Adjust the difficulty and length of typing tests according to your preference.
+
+### 5. 📫 Contact
+For any inquiries or feedback, feel free to reach out to me:
+```bash
+ibby200@icloud.com
+```
