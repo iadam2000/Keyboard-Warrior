@@ -1,3 +1,10 @@
+## 🌐 Hosted Version
+
+You can access the live version of the application here:  
+🔗 **[Keyboard Typing Test Live App](https://ibraheems-articlex.netlify.app/)**
+
+---
+
 # ⌨️ Keyboard Typing Test Project
 
 Welcome to my **Keyboard Typing Test** repository! This project is designed to improve typing skills in a fun and interactive way.
@@ -5,13 +12,6 @@ Welcome to my **Keyboard Typing Test** repository! This project is designed to i
 This application is built with **HTML**, **CSS**, and **JavaScript**. It provides users with a variety of typing tests and performance tracking features.
 
 Explore the hosted version and feel free to contribute, clone, or improve it!
-
-## 🌐 Hosted Version
-
-You can access the live version of the application here:  
-🔗 **[Keyboard Typing Test Live App](https://ibraheems-articlex.netlify.app/)**
-
----
 
 ## 📄 Project Overview
 
