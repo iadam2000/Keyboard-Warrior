@@ -1,7 +1,7 @@
 ## 🌐 Hosted Version
 
 You can access the live version of the application here:  
-🔗 **[Keyboard Typing Test Live App](https://ibraheems-articlex.netlify.app/)**
+🔗 **[Keyboard Typing Test Live App](alpha-keyboard-warrior.netlify.app//)**
 
 ---
 
