@@ -22,7 +22,7 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
   const { user, stats } = useContext(UserContext);
   const inputRef = useRef(null);
   const [strArray, setStrArr] = useState([]);
-  const [timer, setTimer] = useState(15);
+  const [timer, setTimer] = useState(30);
   const [timerStarted, setTimerStarted] = useState(false);
   const [correctChar, setCorrectChar] = useState(0);
   const [cpm, setCpm] = useState(0);
