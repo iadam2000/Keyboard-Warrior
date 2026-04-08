@@ -9,7 +9,7 @@ function Home() {
   const { isLoggedOut, user } = useContext(UserContext);
   const [typedLetter, setTypedLetter] = useState(null);
   const [isSpecialKey, setSpecialKey] = useState(null);
-  const [soundOn, setSoundOn] = useState(false)
+  const [soundOn, setSoundOn] = useState(true)
 
   return (
     <div className="Home-Page">
