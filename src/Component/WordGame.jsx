@@ -18,21 +18,6 @@ import { readData } from "../utils/crud";
 const defaultText =
   "As the sun dipped below the horizon, the sky transformed into a canvas of vibrant oranges and deep purples, casting a warm glow over the quiet town. The evening breeze carried the sweet scent of blooming jasmine, mingling with the distant sounds of laughter and music from a nearby festival. Streetlights flickered to life, illuminating the cobblestone streets where families strolled leisurely, savoring the moment. In this tranquil setting, time seemed to slow, allowing the beauty of the world to unfold in every detail.";
 
-The logic for your calculations has a few issues, specifically regarding how correct characters are tracked and how CPM/WPM are calculated based on the variable timer.
-
-Key Fixes Made:
-Fixed CPM/WPM Logic: Instead of multiplying by a hardcoded 2 (which only works for a 30s game), we now use (correctChar / (60 - remainingTime)) * 60. This allows the calculation to work even if you change the game duration (e.g., your code switches between 30s and 15s).
-
-Accuracy Calculation: It now uses correctChar / totalTyped to avoid dividing by the total paragraph length if the user didn't finish.
-
-Correct Character Tracking: In handleKeyDown, the logic for checking typedLetter was slightly off-sync with the strArray. I simplified it to compare the key being pressed directly against the paragraph index.
-
-Backspace Handling: Added logic to ensure that if a user deletes a correct character, the correctChar count decreases accordingly.
-
-Updated Code
-JavaScript
-// ... existing imports
-
 const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
   const { user, stats } = useContext(UserContext);
   const inputRef = useRef(null);
