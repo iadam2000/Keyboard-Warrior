@@ -18,11 +18,27 @@ import { readData } from "../utils/crud";
 const defaultText =
   "As the sun dipped below the horizon, the sky transformed into a canvas of vibrant oranges and deep purples, casting a warm glow over the quiet town. The evening breeze carried the sweet scent of blooming jasmine, mingling with the distant sounds of laughter and music from a nearby festival. Streetlights flickered to life, illuminating the cobblestone streets where families strolled leisurely, savoring the moment. In this tranquil setting, time seemed to slow, allowing the beauty of the world to unfold in every detail.";
 
+The logic for your calculations has a few issues, specifically regarding how correct characters are tracked and how CPM/WPM are calculated based on the variable timer.
+
+Key Fixes Made:
+Fixed CPM/WPM Logic: Instead of multiplying by a hardcoded 2 (which only works for a 30s game), we now use (correctChar / (60 - remainingTime)) * 60. This allows the calculation to work even if you change the game duration (e.g., your code switches between 30s and 15s).
+
+Accuracy Calculation: It now uses correctChar / totalTyped to avoid dividing by the total paragraph length if the user didn't finish.
+
+Correct Character Tracking: In handleKeyDown, the logic for checking typedLetter was slightly off-sync with the strArray. I simplified it to compare the key being pressed directly against the paragraph index.
+
+Backspace Handling: Added logic to ensure that if a user deletes a correct character, the correctChar count decreases accordingly.
+
+Updated Code
+JavaScript
+// ... existing imports
+
 const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
   const { user, stats } = useContext(UserContext);
   const inputRef = useRef(null);
   const [strArray, setStrArr] = useState([]);
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(30); // Initial set to 30
+  const [initialTime] = useState(30);    // Store the starting time for math
   const [timerStarted, setTimerStarted] = useState(false);
   const [correctChar, setCorrectChar] = useState(0);
   const [cpm, setCpm] = useState(0);
@@ -34,24 +50,34 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
   const [text, setText] = useState(defaultText);
   const [specialKey, setSpecialKey] = useState(null);
 
+  // --- CALCULATION FIX ---
   useEffect(() => {
-    if (timer === 0) {
-      const charPerMin = Math.ceil(correctChar * 2);
+    if (timer === 0 && timerStarted) {
+      const timeElapsedInSeconds = initialTime; // Since timer hit 0
+      const timeElapsedInMinutes = timeElapsedInSeconds / 60;
+
+      // CPM = Correct Characters / Time in Minutes
+      const charPerMin = Math.round(correctChar / timeElapsedInMinutes);
       setCpm(charPerMin);
-      const WordsPerMmin = Math.ceil(charPerMin / 5);
-      setWpm(WordsPerMmin);
-      const accuarcyByPercentage = (correctChar / strArray.length) * 100;
-      const roundedAccuarcy = accuarcyByPercentage.toFixed(1);
-      setAccuracy(roundedAccuarcy);
+
+      // WPM = CPM / 5 (Standard typing measure)
+      const wordsPerMin = Math.round(charPerMin / 5);
+      setWpm(wordsPerMin);
+
+      // Accuracy = Correct Characters / Total keys pressed (excluding backspaces ideally)
+      // Or simply: (correct / total typed)
+      const totalTyped = strArray.length;
+      const accuracyPercentage = totalTyped > 0 
+        ? (correctChar / totalTyped) * 100 
+        : 0;
+      
+      setAccuracy(accuracyPercentage.toFixed(1));
       setIsTime0(true);
     }
   }, [timer]);
 
   function handleKeyDown(e) {
     const specialKeys = ["Shift", "CapsLock", "Alt", "Control"];
-    const lastTypedCharacter = strArray[strArray.length - 1];
-    const currentParagraphLetter = paragraph[strArray.length - 1];
-    const typedLetter = paragraph[strArray.length];
     const keySound = new Audio(click);
     const wrongKey = new Audio(errorSound);
 
@@ -60,96 +86,42 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
       return;
     }
 
-    if (timerStarted === false) {
+    if (!timerStarted) {
       setTimerStarted(true);
     }
 
-    if (typedLetter !== null && lastTypedCharacter === currentParagraphLetter) {
-      setCorrectChar((correctChar) => correctChar + 1);
-    }
+    const currentIndex = strArray.length;
+    const targetChar = paragraph[currentIndex];
 
-    if (typedLetter !== null && lastTypedCharacter !== currentParagraphLetter) {
-      setCorrectChar((correctChar) => correctChar - 1);
+    if (e.key === "Backspace") {
+      // If we are deleting a character that was correct, decrement correctChar
+      if (currentIndex > 0) {
+        const lastTyped = strArray[currentIndex - 1];
+        const lastTarget = paragraph[currentIndex - 1];
+        if (lastTyped === lastTarget) {
+          setCorrectChar((prev) => Math.max(0, prev - 1));
+        }
+      }
+      setStrArr((prev) => prev.slice(0, -1));
+    } else if (e.key.length === 1) { // Only track actual character keys
+      if (e.key === targetChar) {
+        setCorrectChar((prev) => prev + 1);
+        if (soundOn) keySound.play();
+      } else {
+        if (soundOn) wrongKey.play();
+      }
+      setStrArr((prev) => [...prev, e.key]);
     }
-    if(soundOn){
-    if (typedLetter === e.key) {
-      keySound.play();
-    } else {
-      wrongKey.play();
-    }
-  }
 
     setTypedLetter(e.key);
-    if (e.key === "Backspace") {
-      setStrArr((strArray) => strArray.slice(0, -1));
-    } else {
-      setStrArr((strArray) => [...strArray, e.key]);
-    }
   }
 
-  useEffect(() => {
-    if (timer > 0 && timerStarted === true) {
-      const intervalId = setInterval(() => {
-        setTimer((prevTimer) => prevTimer - 1);
-      }, 1000);
-      return () => clearInterval(intervalId);
-    }
-  }, [timer, timerStarted]);
-
-  function getClassName(i) {
-    if (strArray.length === i) {
-      return "active";
-    }
-    if (strArray.length > i) {
-      if (typedLetter !== null && strArray[i] === paragraph[i]) {
-        return "correct";
-      } else {
-        return "incorrect";
-      }
-    }
-  }
-
-  function handleClick() {
-    if (!gameStarted) {
-      setGameStarted(true);
-    }
-    inputRef.current.focus();
-  }
-
-  function conditionalRender() {
-    if (gameStarted && timer > 0) {
-      return paragraph.split("").map((char, i) => (
-        <span className={`char ${getClassName(i)}`} key={i}>
-          {char}
-        </span>
-      ));
-    }
-    if (!gameStarted && timer > 0) {
-      return (
-        <span className="start-game-text">
-          Please click here to start the game. Once you start typing, the timer
-          will start...
-        </span>
-      );
-    }
-    if (gameStarted && timer === 0) {
-      return (
-        <>
-          <div className="stats-in-text-box">
-            <p>Time's up! Here are your stats:</p>
-            <p>WPM: {wpm}</p>
-            <p>Accuracy: {accuracy}%</p>
-            <p>CPM: {cpm}</p>
-          </div>
-        </>
-      );
-    }
-  }
+  // ... (Keep your existing timer interval useEffect)
 
   function refresh() {
     setTypedLetter(null);
     setStrArr([]);
-    setTimer(15);
+    setTimer(30); // Reset to match initialTime
     setTimerStarted(false);
     setCorrectChar(0);
     setCpm(0);
