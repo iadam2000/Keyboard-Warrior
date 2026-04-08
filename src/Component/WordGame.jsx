@@ -21,9 +21,13 @@ const defaultText =
 const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
   const { user, stats } = useContext(UserContext);
   const inputRef = useRef(null);
+  
+  // Settings
+  const INITIAL_TIME = 30;
+
+  // Game State
   const [strArray, setStrArr] = useState([]);
-  const [timer, setTimer] = useState(30); // Initial set to 30
-  const [initialTime] = useState(30);    // Store the starting time for math
+  const [timer, setTimer] = useState(INITIAL_TIME);
   const [timerStarted, setTimerStarted] = useState(false);
   const [correctChar, setCorrectChar] = useState(0);
   const [cpm, setCpm] = useState(0);
@@ -32,36 +36,42 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
   const [gameStarted, setGameStarted] = useState(false);
   const [isTime0, setIsTime0] = useState(false);
   const [paragraph, SetParagraph] = useState(defaultText);
-  const [text, setText] = useState(defaultText);
+  const [text, setText] = useState({ easy: [], medium: [], hard: [] });
   const [specialKey, setSpecialKey] = useState(null);
 
-  // --- CALCULATION FIX ---
+  // 1. Timer Logic
   useEffect(() => {
-    if (timer === 0 && timerStarted) {
-      const timeElapsedInSeconds = initialTime; // Since timer hit 0
-      const timeElapsedInMinutes = timeElapsedInSeconds / 60;
-
-      // CPM = Correct Characters / Time in Minutes
-      const charPerMin = Math.round(correctChar / timeElapsedInMinutes);
-      setCpm(charPerMin);
-
-      // WPM = CPM / 5 (Standard typing measure)
-      const wordsPerMin = Math.round(charPerMin / 5);
-      setWpm(wordsPerMin);
-
-      // Accuracy = Correct Characters / Total keys pressed (excluding backspaces ideally)
-      // Or simply: (correct / total typed)
-      const totalTyped = strArray.length;
-      const accuracyPercentage = totalTyped > 0 
-        ? (correctChar / totalTyped) * 100 
-        : 0;
-      
-      setAccuracy(accuracyPercentage.toFixed(1));
-      setIsTime0(true);
+    let intervalId;
+    if (timerStarted && timer > 0) {
+      intervalId = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    } else if (timer === 0) {
+      setTimerStarted(false);
+      calculateFinalStats();
     }
-  }, [timer]);
+    return () => clearInterval(intervalId);
+  }, [timerStarted, timer]);
 
+  // 2. Stats Calculation
+  const calculateFinalStats = () => {
+    const timeInMinutes = INITIAL_TIME / 60;
+    const finalCpm = Math.round(correctChar / timeInMinutes);
+    const finalWpm = Math.round(finalCpm / 5);
+    const finalAccuracy = strArray.length > 0 
+      ? ((correctChar / strArray.length) * 100).toFixed(1) 
+      : 0;
+
+    setCpm(finalCpm);
+    setWpm(finalWpm);
+    setAccuracy(finalAccuracy);
+    setIsTime0(true);
+  };
+
+  // 3. Key Handling
   function handleKeyDown(e) {
+    if (timer === 0) return;
+
     const specialKeys = ["Shift", "CapsLock", "Alt", "Control"];
     const keySound = new Audio(click);
     const wrongKey = new Audio(errorSound);
@@ -71,7 +81,7 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
       return;
     }
 
-    if (!timerStarted) {
+    if (!timerStarted && gameStarted) {
       setTimerStarted(true);
     }
 
@@ -79,16 +89,16 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
     const targetChar = paragraph[currentIndex];
 
     if (e.key === "Backspace") {
-      // If we are deleting a character that was correct, decrement correctChar
       if (currentIndex > 0) {
         const lastTyped = strArray[currentIndex - 1];
         const lastTarget = paragraph[currentIndex - 1];
         if (lastTyped === lastTarget) {
           setCorrectChar((prev) => Math.max(0, prev - 1));
         }
+        setStrArr((prev) => prev.slice(0, -1));
       }
-      setStrArr((prev) => prev.slice(0, -1));
-    } else if (e.key.length === 1) { // Only track actual character keys
+    } else if (e.key.length === 1) {
+      // Normal character typed
       if (e.key === targetChar) {
         setCorrectChar((prev) => prev + 1);
         if (soundOn) keySound.play();
@@ -97,129 +107,110 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
       }
       setStrArr((prev) => [...prev, e.key]);
     }
-
     setTypedLetter(e.key);
   }
 
-  // ... (Keep your existing timer interval useEffect)
+  // 4. Database Sync
+  useEffect(() => {
+    if (isTime0 && user) {
+      const id = user.uid;
+      const finalWpm = wpm;
+      const finalAcc = accuracy;
+
+      const updatedData = {
+        gamesPlayed: noOfGames(stats?.gamesPlayed),
+        highScore: highScoreCalc(finalWpm, stats?.highScore),
+        lastTenWpm: updateLastTen(stats?.lastTenWpm, finalWpm),
+        lastTenAccuracy: updateLastTen(stats?.lastTenAccuracy, finalAcc),
+        wpm: finalWpm,
+        cpm: cpm,
+        accuracy: finalAcc,
+      };
+
+      // Add Averages
+      updatedData.averageWpm = getAverage(updatedData.lastTenWpm);
+      updatedData.averageAccuracy = getAverage(updatedData.lastTenAccuracy);
+
+      const docRef = doc(db, "gameStats", id);
+      updateDoc(docRef, updatedData).catch(console.error);
+    }
+  }, [isTime0]);
+
+  // Helpers
+  useEffect(() => {
+    readData("Words", "UbEpCK8nX6NnQKg0ubYP").then((data) => {
+      const formatted = { easy: [], medium: [], hard: [] };
+      for (let i = 1; i < 4; i++) {
+        formatted.easy.push(data[`easy${i}`]);
+        formatted.medium.push(data[`medium${i}`]);
+        formatted.hard.push(data[`hard${i}`]);
+      }
+      setText(formatted);
+    });
+  }, []);
+
+  function getClassName(i) {
+    if (strArray.length === i) return "active";
+    if (strArray.length > i) {
+      return strArray[i] === paragraph[i] ? "correct" : "incorrect";
+    }
+    return "";
+  }
+
+  function handleClick() {
+    setGameStarted(true);
+    setTimeout(() => inputRef.current?.focus(), 10);
+  }
 
   function refresh() {
     setTypedLetter(null);
     setStrArr([]);
-    setTimer(30); // Reset to match initialTime
+    setTimer(INITIAL_TIME);
     setTimerStarted(false);
     setCorrectChar(0);
-    setCpm(0);
-    setWpm(0);
-    setAccuracy(0);
-    setGameStarted(false);
     setIsTime0(false);
+    setGameStarted(false);
   }
 
-  const userData = {
-    gamesPlayed: 0,
-    highScore: 0,
-    lastTenWpm: [],
-    lastTenAccuracy: [],
-    averageWpm: 0,
-    averageAccuracy: 0,
-    accuracy: 0,
-    wpm: 0,
-    cpm: 0,
-  };
-
-  useEffect(() => {
-    const id = user?.uid;
-    if (user && isTime0) {
-      const lastTen_wpm = updateLastTen(stats?.lastTenWpm, wpm);
-      const lastTen_accuracy = updateLastTen(stats?.lastTenAccuracy, accuracy);
-      const avg_wpm = getAverage(stats?.lastTenWpm);
-      const avg_accuracy = getAverage(stats?.lastTenAccuracy);
-      const high_score = highScoreCalc(wpm, stats?.highScore);
-      const games = noOfGames(stats?.gamesPlayed);
-
-      userData.gamesPlayed = games;
-      userData.highScore = high_score;
-      userData.lastTenWpm = lastTen_wpm;
-      userData.lastTenAccuracy = lastTen_accuracy;
-      userData.averageWpm = avg_wpm;
-      userData.averageAccuracy = avg_accuracy;
-      userData.accuracy = Number(accuracy).toFixed(2);
-      userData.wpm = wpm;
-      userData.cpm = cpm;
-    }
-    if (user && wpm > 0) {
-      const docRef = doc(db, "gameStats", id);
-      updateDoc(docRef, {
-        id,
-        ...userData,
-      }).then(() => {
-        console.log("data");
-      });
-    }
-  }, [wpm]);
-
-  useEffect(() => {
-    const easy = [];
-    const medium = [];
-    const hard = [];
-    readData("Words", "UbEpCK8nX6NnQKg0ubYP").then((data) => {
-      for (let i = 1; i < 4; i++) {
-        easy.push(data[`easy${i}`]);
-        medium.push(data[`medium${i}`]);
-        hard.push(data[`hard${i}`]);
-      }
-      setText({
-        easy,
-        medium,
-        hard,
-      });
-    });
-  }, []);
-
   function ParagraphGen(selection) {
-    const easy = shuffle(text["easy"]);
-    const medium = shuffle(text["medium"]);
-    const hard = shuffle(text["hard"]);
     const difficulty = selection.target.value;
-    if (difficulty === "easy") {
-      console.log();
-      SetParagraph(easy[0]);
+    const choices = text[difficulty];
+    if (choices && choices.length > 0) {
+      SetParagraph(shuffle(choices)[0]);
+      refresh();
     }
-    if (difficulty === "medium") {
-      SetParagraph(medium[0]);
+  }
+
+  function conditionalRender() {
+    if (gameStarted && timer > 0) {
+      return paragraph.split("").map((char, i) => (
+        <span className={`char ${getClassName(i)}`} key={i}>{char}</span>
+      ));
     }
-    if (difficulty === "hard") {
-      SetParagraph(hard[0]);
+    if (timer === 0) {
+      return (
+        <div className="stats-in-text-box">
+          <h3>Results</h3>
+          <p>WPM: {wpm} | Accuracy: {accuracy}% | CPM: {cpm}</p>
+        </div>
+      );
     }
+    return <span className="start-game-text">Click here to focus and start typing...</span>;
   }
 
   return (
     <section className="word-game">
       <div className="controls-container">
         <select className="DropDown" onChange={ParagraphGen}>
-          <option className="selection" value="easy">
-            Easy
-          </option>
-          <option className="selection" value="medium">
-            Medium
-          </option>
-          <option className="selection" value="hard">
-            Hard
-          </option>
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
         </select>
-
-          <p className="statistics time-r">
-            <span>{timer}</span>
-            <div
-              className="timer-bar"
-              style={{ width: `${(timer / 15) * 100}%` }}
-            />
-          </p>
-
-        <button className="Refresh" onClick={refresh}>
-          Play Again!
-        </button>
+        <div className="statistics time-r">
+          <span>{timer}s</span>
+          <div className="timer-bar" style={{ width: `${(timer / INITIAL_TIME) * 100}%` }} />
+        </div>
+        <button className="Refresh" onClick={refresh}>Play Again!</button>
       </div>
 
       <div className="word-game-container">
@@ -229,11 +220,11 @@ const WordGame = ({ typedLetter, setTypedLetter, soundOn }) => {
             className="input-field"
             onKeyDown={handleKeyDown}
             ref={inputRef}
+            autoFocus
           />
           <div className="text-field">{conditionalRender()}</div>
         </div>
       </div>
-
       <Keyboard typedLetter={typedLetter} isSpecialKey={specialKey} />
     </section>
   );
